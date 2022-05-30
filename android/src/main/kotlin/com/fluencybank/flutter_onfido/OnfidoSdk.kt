@@ -5,13 +5,13 @@ import com.onfido.android.sdk.capture.DocumentType
 import com.onfido.android.sdk.capture.Onfido
 import com.onfido.android.sdk.capture.OnfidoConfig
 import com.onfido.android.sdk.capture.ui.camera.face.stepbuilder.FaceCaptureStepBuilder
-import com.onfido.android.sdk.capture.ui.options.CaptureScreenStep
 import com.onfido.android.sdk.capture.ui.options.FlowStep
+import com.onfido.android.sdk.capture.ui.options.stepbuilder.DocumentCaptureStepBuilder
 import com.onfido.android.sdk.capture.utils.CountryCode
 import io.flutter.plugin.common.MethodChannel
 import java.util.Locale
 
-class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityListener: OnfidoSdkActivityEventListener, val client: Onfido, var currentActivity: Activity?) {
+class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityListener: OnfidoSdkActivityEventListener, private val client: Onfido, var currentActivity: Activity?) {
 
     private fun setFlutterResult(result: MethodChannel.Result?) {
         currentFlutterResult = result
@@ -32,22 +32,22 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
             var locale: String? = null;
 
             try {
-                sdkToken = config.get("sdkToken").toString()
+                sdkToken = config["sdkToken"].toString()
                 flowStepsWithOptions = getFlowStepsFromConfig(config)
             } catch (e: Exception) {
                 currentFlutterResult?.error("config_error", e.message, null)
-                setFlutterResult(null)
+                setFlutterResult(currentFlutterResult)
                 return
             }
 
             if (currentActivity == null) {
                 currentFlutterResult?.error("error", "Android activity does not exist", null)
-                setFlutterResult(null);
-                return;
+                setFlutterResult(currentFlutterResult)
+                return
             }
 
-            if (config.get("locale") != null)
-                locale = config.get("locale").toString();
+            if (config["locale"] != null)
+                locale = config["locale"].toString();
 
             try {
                 var onfidoConfigBuilder = OnfidoConfig.builder(currentActivity!!)
@@ -59,13 +59,13 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
                 client.startActivityForResult(currentActivity!!, 1, onfidoConfig)
             } catch (e: Exception) {
                 currentFlutterResult?.error("error", "Failed to show Onfido page", null)
-                setFlutterResult(null)
+                setFlutterResult(currentFlutterResult)
                 return
             }
         } catch (e: Exception) {
             e.printStackTrace()
             currentFlutterResult?.error("error", "Unexpected error starting Onfido page", null)
-            setFlutterResult(null)
+            setFlutterResult(currentFlutterResult)
             return
         }
     }
@@ -73,11 +73,10 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
     @Throws(Exception::class)
     fun getFlowStepsFromConfig(config: HashMap<String, Any?>): Array<FlowStep> {
         try {
-            val flowSteps = config.get("flowSteps") as HashMap<String, Any?>
+            val flowSteps = config["flowSteps"] as HashMap<String, Any?>
 
-            val welcomePageIsIncluded: Boolean
-            welcomePageIsIncluded = if (flowSteps.containsKey("welcome")) {
-                flowSteps.get("welcome") as Boolean
+            val welcomePageIsIncluded: Boolean = if (flowSteps.containsKey("welcome")) {
+                flowSteps["welcome"] as Boolean
             } else {
                 false
             }
@@ -86,18 +85,12 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
             var captureDocumentBoolean: Boolean? = null
 
             try {
-                captureDocumentBoolean = flowSteps.get("captureDocument") as Boolean
+                captureDocumentBoolean = flowSteps["captureDocument"] as Boolean
             } catch (e: Exception) {
                 captureDocument = try {
-                    flowSteps.get("captureDocument") as HashMap<String, Any?>
+                    flowSteps["captureDocument"] as HashMap<String, Any?>
                 } catch (e: Exception) {
-                    null
-                }
-            } catch (e: Exception) {
-                captureDocument = try {
-                    flowSteps.get("captureDocument") as HashMap<String, Any?>
-                } catch (e: Exception) {
-                    null
+                    throw Exception("Error", e)
                 }
             }
 
@@ -113,7 +106,7 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
                 val docTypeExists: Boolean = captureDocument.containsKey("docType")
                 val countryCodeExists: Boolean = captureDocument.containsKey("countryCode")
                 if (docTypeExists && countryCodeExists) {
-                    val docTypeString: String = captureDocument.get("docType") as String
+                    val docTypeString: String = captureDocument["docType"] as String
                     val docTypeEnum: DocumentType
                     try {
                         docTypeEnum = DocumentType.valueOf(docTypeString)
@@ -121,13 +114,24 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
                         System.err.println("Unexpected docType value: [$docTypeString]")
                         throw Exception("Unexpected docType value.")
                     }
-                    val countryCodeString: String = captureDocument.get("countryCode") as String
+                    val countryCodeString: String = captureDocument["countryCode"] as String
                     val countryCodeEnum = findCountryCodeByAlpha3(countryCodeString)
                     if (countryCodeEnum == null) {
                         System.err.println("Unexpected countryCode value: [$countryCodeString]")
                         throw Exception("Unexpected countryCode value.")
                     }
-                    flowStepList.add(CaptureScreenStep(docTypeEnum, countryCodeEnum))
+                    flowStepList.add(
+                        when(docTypeEnum) {
+                            DocumentType.NATIONAL_IDENTITY_CARD -> DocumentCaptureStepBuilder.forNationalIdentity().withCountry(countryCodeEnum)
+                            DocumentType.RESIDENCE_PERMIT -> DocumentCaptureStepBuilder.forResidencePermit().withCountry(countryCodeEnum)
+                            DocumentType.DRIVING_LICENCE -> DocumentCaptureStepBuilder.forDrivingLicence().withCountry(countryCodeEnum)
+                            DocumentType.GENERIC -> DocumentCaptureStepBuilder.forGenericDocument().withCountry(countryCodeEnum)
+                            DocumentType.UNKNOWN -> DocumentCaptureStepBuilder.forGenericDocument().withCountry(countryCodeEnum)
+                            DocumentType.WORK_PERMIT -> DocumentCaptureStepBuilder.forWorkPermit().withCountry(countryCodeEnum)
+                            DocumentType.VISA -> DocumentCaptureStepBuilder.forVisa().withCountry(countryCodeEnum)
+                            DocumentType.PASSPORT -> DocumentCaptureStepBuilder.forPassport()
+                        }.build()
+                    )
                 } else if (!docTypeExists && !countryCodeExists) {
                     flowStepList.add(FlowStep.CAPTURE_DOCUMENT)
                 } else {
@@ -136,18 +140,21 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
             }
 
             val captureFaceEnabled = flowSteps.containsKey("captureFace")
-            val captureFace = if (captureFaceEnabled) flowSteps.get("captureFace") as Map<String, Any?> else null;
+            val captureFace = if (captureFaceEnabled) flowSteps["captureFace"] as Map<String, Any?> else null;
 
             if (captureFace != null) {
                 val captureFaceTypeExists = captureFace.containsKey("type");
                 if (captureFaceTypeExists) {
-                    val captureFaceType = captureFace.get("type") as String;
-                    if (captureFaceType.equals("PHOTO")) {
-                        flowStepList.add(FaceCaptureStepBuilder.forPhoto().build());
-                    } else if (captureFaceType.equals("VIDEO")) {
-                        flowStepList.add(FaceCaptureStepBuilder.forVideo().build());
-                    } else {
-                        throw Exception("Invalid face capture type.  \"type\" must be VIDEO or PHOTO.");
+                    when (captureFace["type"] as String) {
+                        "PHOTO" -> {
+                            flowStepList.add(FaceCaptureStepBuilder.forPhoto().build());
+                        }
+                        "VIDEO" -> {
+                            flowStepList.add(FaceCaptureStepBuilder.forVideo().build());
+                        }
+                        else -> {
+                            throw Exception("Invalid face capture type.  \"type\" must be VIDEO or PHOTO.");
+                        }
                     }
                 } else {
                     // Default face capture type is photo.
@@ -164,7 +171,7 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
     }
 
 
-    fun findCountryCodeByAlpha3(countryCodeString: String): CountryCode? {
+    private fun findCountryCodeByAlpha3(countryCodeString: String): CountryCode? {
         var countryCode: CountryCode? = null
         for (cc in CountryCode.values()) {
             if (cc.name == OnfidoAlpha2CountryCodes[countryCodeString]) {

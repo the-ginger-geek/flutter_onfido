@@ -9,9 +9,8 @@ import com.onfido.android.sdk.capture.upload.Captures
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 
-
 class OnfidoSdkActivityEventListener(
-        val client: Onfido) : PluginRegistry.ActivityResultListener {
+    private val client: Onfido) : PluginRegistry.ActivityResultListener {
     private var flutterResult: MethodChannel.Result? = null
 
     fun setCurrentFlutterResult(result: MethodChannel.Result?) {
@@ -25,7 +24,7 @@ class OnfidoSdkActivityEventListener(
                     var docFrontId: String? = null
                     var docBackId: String? = null
                     var faceId: String? = null
-                    var faceVarient: String? = null
+                    var faceVariant: String? = null
                     if (captures.document != null) {
                         if (captures.document!!.front != null) {
                             docFrontId = captures.document!!.front!!.id
@@ -35,14 +34,14 @@ class OnfidoSdkActivityEventListener(
                         }
                     }
                     if (captures.face != null) {
-                        faceId = captures.face!!.id
-                        faceVarient = captures.face!!.variant.toString()
+                        faceId = captures.face?.id
+                        faceVariant = captures.face?.variant.toString()
                     }
                     try {
-                        val response = Response(docFrontId, docBackId, faceId, faceVarient)
-                        flutterResult!!.success(response.toMap())
+                        val response = Response(docFrontId, docBackId, faceId, faceVariant)
+                        flutterResult?.success(response.toMap())
                     } catch (e: Exception) {
-                        flutterResult!!.error("error", "Error serializing response", null)
+                        flutterResult?.error("error", "Error serializing response", null)
                     } finally {
                         flutterResult = null
                     }
@@ -51,14 +50,14 @@ class OnfidoSdkActivityEventListener(
 
             override fun userExited(exitCode: ExitCode) {
                 if (flutterResult != null) {
-                    flutterResult!!.error("cancel", "User exited by clicking the back button.", null)
+                    flutterResult?.error("cancel", "User exited by clicking the back button.", null)
                     flutterResult = null
                 }
             }
 
             override fun onError(exception: OnfidoException) {
                 if (flutterResult != null) {
-                    flutterResult!!.error("error", exception.toString(), null)
+                    flutterResult?.error("error", exception.toString(), null)
                     flutterResult = null
                 }
             }

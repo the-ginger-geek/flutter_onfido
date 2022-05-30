@@ -39,10 +39,10 @@ class Response(frontId: String?, backId: String?, faceId: String?, faceVariant: 
         if (frontId != null || backId != null) {
             document = Document()
             if (frontId != null) {
-                document!!.front = Identifiable(frontId)
+                document?.front = Identifiable(frontId)
             }
             if (backId != null) {
-                document!!.back = Identifiable(backId)
+                document?.back = Identifiable(backId)
             }
         }
     }
@@ -56,16 +56,16 @@ class Response(frontId: String?, backId: String?, faceId: String?, faceVariant: 
     fun toMap(): HashMap<String, Any> {
         val map: HashMap<String, Any> = HashMap()
         if (document != null) {
-            map.put("document", HashMap<String, Any>())
+            map["document"] = HashMap<String, Any>()
             if (document!!.front != null) {
-                (map["document"] as HashMap<String, Any>)["front"] = hashMapOf("id" to document!!.front?.id)
+                (map["document"] as HashMap<String, Any>)["front"] = hashMapOf("id" to document?.front?.id)
             }
             if (document!!.back != null) {
-                (map["document"] as HashMap<String, Any>)["back"] = hashMapOf("id" to document!!.back?.id)
+                (map["document"] as HashMap<String, Any>)["back"] = hashMapOf("id" to document?.back?.id)
             }
         }
         if (face != null) {
-            map.put("face", hashMapOf("variant" to face!!.variant, "id" to face!!.id))
+            map["face"] = hashMapOf("variant" to face?.variant, "id" to face?.id)
         }
         return map
     }

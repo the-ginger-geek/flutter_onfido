@@ -10,9 +10,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
-
 
 /** FlutterOnfidoPlugin */
 class FlutterOnfidoPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -46,10 +44,10 @@ class FlutterOnfidoPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
   }
 
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: MethodChannel.Result) {
     if (call.method == "start") {
       val config = call.arguments as HashMap<String, Any?>
-      onfidoSdk.start(config.get("config") as HashMap<String, Any?>, result)
+      onfidoSdk.start(config["config"] as HashMap<String, Any?>, result)
     } else {
       result.notImplemented()
     }
@@ -69,12 +67,7 @@ class FlutterOnfidoPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   override fun onDetachedFromActivity() {
-    onfidoSdk.setActivity(null)
     pluginBinding.removeActivityResultListener(activityListener)
-  }
-
-  override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-    onReattachedToActivityForConfigChanges(binding)
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -83,7 +76,11 @@ class FlutterOnfidoPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     pluginBinding.addActivityResultListener(activityListener)
   }
 
+  override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+    onAttachedToActivity(binding);
+  }
+
   override fun onDetachedFromActivityForConfigChanges() {
-    onDetachedFromActivityForConfigChanges()
+    onDetachedFromActivity();
   }
 }
