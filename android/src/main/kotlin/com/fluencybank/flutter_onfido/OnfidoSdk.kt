@@ -174,14 +174,14 @@ class OnfidoSdk(var currentFlutterResult: MethodChannel.Result?, var activityLis
     private fun findCountryCodeByAlpha3(countryCodeString: String): CountryCode? {
         var countryCode: CountryCode? = null
         for (cc in CountryCode.values()) {
-            if (cc.name == OnfidoAlpha2CountryCodes[countryCodeString]) {
+            if (cc.name == onfidoAlpha2CountryCodes[countryCodeString]) {
                 countryCode = cc
             }
         }
         return countryCode
     }
 
-    private val OnfidoAlpha2CountryCodes: HashMap<String, String> = hashMapOf(
+    private val onfidoAlpha2CountryCodes: HashMap<String, String> = hashMapOf(
         "AND" to "AD",
         "ARE" to "AE",
         "AFG" to "AF",
